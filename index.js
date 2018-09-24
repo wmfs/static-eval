@@ -1,9 +1,7 @@
-var unparse = require('escodegen').generate;
-
 module.exports = function (ast, vars) {
     if (!vars) vars = {};
     var FAIL = {};
-    
+
     var result = (function walk (node, scopeVars) {
         if (node.type === 'Literal') {
             return node.value;
@@ -44,7 +42,7 @@ module.exports = function (ast, vars) {
             if (l === FAIL) return FAIL;
             var r = walk(node.right);
             if (r === FAIL) return FAIL;
-            
+
             var op = node.operator;
             if (op === '==') return l == r;
             if (op === '===') return l === r;
@@ -64,7 +62,7 @@ module.exports = function (ast, vars) {
             if (op === '^') return l ^ r;
             if (op === '&&') return l && r;
             if (op === '||') return l || r;
-            
+
             return FAIL;
         }
         else if (node.type === 'Identifier') {
@@ -83,7 +81,7 @@ module.exports = function (ast, vars) {
             var callee = walk(node.callee);
             if (callee === FAIL) return FAIL;
             if (typeof callee !== 'function') return FAIL;
-            
+
             var ctx = node.callee.object ? walk(node.callee.object) : FAIL;
             if (ctx === FAIL) ctx = null;
 
@@ -97,7 +95,7 @@ module.exports = function (ast, vars) {
         }
         else if (node.type === 'MemberExpression') {
             var obj = walk(node.object);
-            // do not allow access to methods on Function 
+            // do not allow access to methods on Function
             if((obj === FAIL) || (typeof obj == 'function')){
                 return FAIL;
             }
@@ -122,33 +120,7 @@ module.exports = function (ast, vars) {
             return walk(node.argument)
         }
         else if (node.type === 'FunctionExpression') {
-            
-            var bodies = node.body.body;
-            
-            // Create a "scope" for our arguments
-            var oldVars = {};
-            Object.keys(vars).forEach(function(element){
-                oldVars[element] = vars[element];
-            })
-
-            node.params.forEach(function(key) {
-                if(key.type == 'Identifier'){
-                  vars[key.name] = null;
-                }
-            });
-            for(var i in bodies){
-                if(walk(bodies[i]) === FAIL){
-                    return FAIL;
-                }
-            }
-            // restore the vars and scope after we walk
-            vars = oldVars;
-            
-            var keys = Object.keys(vars);
-            var vals = keys.map(function(key) {
-                return vars[key];
-            });
-            return Function(keys.join(', '), 'return ' + unparse(node)).apply(null, vals);
+            return FAIL
         }
         else if (node.type === 'TemplateLiteral') {
             var str = '';
@@ -171,6 +143,6 @@ module.exports = function (ast, vars) {
         }
         else return FAIL;
     })(ast);
-    
+
     return result === FAIL ? undefined : result;
 };
